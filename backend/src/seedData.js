@@ -14,7 +14,9 @@ const data = rawData.map((item) => {
 });
 
 mongoose
-  .connect("mongodb://localhost:27017/questions")
+  .connect(
+    "mongodb+srv://krisha123:krisha123@cluster0.adqxs.mongodb.net/questions"
+  )
   .then(async () => {
     console.log("MongoDB connected");
     await Question.deleteMany({}); // Optional: Clear the collection
