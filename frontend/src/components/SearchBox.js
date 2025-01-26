@@ -1,60 +1,110 @@
+// import React, { useState } from "react";
+// import { grpc } from "@improbable-eng/grpc-web";
+// import {
+//   SearchQuestionsRequest,
+//   QuestionServiceClient,
+// } from "../proto/question_pb_service";
+// import { Question } from "../proto/question_pb";
+
+// const SearchBox = () => {
+//   const [query, setQuery] = useState("");
+//   const [results, setResults] = useState([]);
+//   const [loading, setLoading] = useState(false);
+
+//   const handleSearch = () => {
+//     setLoading(true);
+//     const client = new QuestionServiceClient("http://localhost:50051"); // Backend gRPC server URL
+
+//     const request = new SearchQuestionsRequest();
+//     request.setQuery(query);
+
+//     client.searchQuestions(request, {}, (error, response) => {
+//       setLoading(false);
+//       if (error) {
+//         console.error(error);
+//         return;
+//       }
+//       setResults(response.getQuestionsList());
+//     });
+//   };
+
+//   return (
+//     <div className="search-box">
+//       <input
+//         type="text"
+//         placeholder="Search questions..."
+//         value={query}
+//         onChange={(e) => setQuery(e.target.value)}
+//       />
+//       <button onClick={handleSearch} disabled={loading}>
+//         {loading ? "Searching..." : "Search"}
+//       </button>
+
+//       {results.length > 0 && (
+//         <div className="results">
+//           {results.map((question, index) => (
+//             <div key={index} className="result-item">
+//               <h3>{question.getTitle()}</h3>
+//               <p>{question.getType()}</p>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default SearchBox;
+
 import React, { useState } from "react";
-import { grpc } from "@improbable-eng/grpc-web";
-import { QuestionService } from "../proto/question_pb_service";
+import { QuestionServiceClient } from "../proto/question_grpc_web_pb";
 import { SearchRequest } from "../proto/question_pb";
-import "./SearchBox.css";
 
 const SearchBox = () => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const client = new QuestionServiceClient(
+    "http://localhost:50051",
+    null,
+    null
+  );
 
   const handleSearch = () => {
-    setLoading(true);
-
     const request = new SearchRequest();
     request.setQuery(query);
 
-    grpc.unary(QuestionService.SearchQuestions, {
-      request,
-      host: "http://localhost:50051", // Ensure gRPC-web proxy is configured
-      onEnd: (response) => {
-        setLoading(false);
+    client.searchQuestions(request, {}, (err, response) => {
+      if (err) {
+        console.error("Error:", err.message);
+        return;
+      }
 
-        if (response.status === grpc.Code.OK && response.message) {
-          setResults(response.message.getQuestionsList());
-        } else {
-          console.error("Error fetching data:", response.statusMessage);
-        }
-      },
+      setResults(
+        response.getQuestionsList().map((q) => ({
+          id: q.getId(),
+          title: q.getTitle(),
+          type: q.getType(),
+        }))
+      );
     });
   };
 
   return (
-    <div className="search-box">
+    <div>
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search questions..."
-        className="search-input"
       />
-      <button
-        onClick={handleSearch}
-        disabled={loading}
-        className="search-button"
-      >
-        {loading ? "Loading..." : "Search"}
-      </button>
-
-      <div className="results">
+      <button onClick={handleSearch}>Search</button>
+      <ul>
         {results.map((question) => (
-          <div key={question.getId()} className="result-card">
-            <h3>{question.getTitle()}</h3>
-            <p>Type: {question.getType()}</p>
-          </div>
+          <li key={question.id}>
+            {question.title} ({question.type})
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 };
